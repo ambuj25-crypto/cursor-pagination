@@ -66,13 +66,16 @@ export default function App() {
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [category, setCategory] = useState('');
 
-  const fetchPage = useCallback(async (cursor) => {
+  const fetchPage = useCallback(async (cursor, activeCategory) => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${API_BASE}/products?limit=${PAGE_LIMIT}${cursor ? `&cursor=${cursor}` : ''}`;
-      const res = await fetch(url);
+      const params = new URLSearchParams({ limit: PAGE_LIMIT });
+      if (cursor) params.append('cursor', cursor);
+      if (activeCategory) params.append('category', activeCategory);
+      const res = await fetch(`${API_BASE}/products?${params}`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
       setProducts(data.products ?? []);
@@ -84,24 +87,27 @@ export default function App() {
     }
   }, []);
 
-  // Initial load
+  // Reload whenever page or category changes
   useEffect(() => {
-    fetchPage(null);
-  }, [fetchPage]);
+    fetchPage(cursorStack[currentPage], category);
+  }, [currentPage, category]);
+
+  const handleCategoryChange = (e) => {
+    setCategory(e.target.value);
+    setCursorStack([null]);
+    setCurrentPage(0);
+  };
 
   const handleNext = () => {
     if (!nextCursor) return;
     const newStack = [...cursorStack, nextCursor];
     setCursorStack(newStack);
-    const newPage = currentPage + 1;
-    setCurrentPage(newPage);
-    fetchPage(nextCursor);
+    setCurrentPage(currentPage + 1);
   };
 
   const handleReset = () => {
     setCursorStack([null]);
     setCurrentPage(0);
-    fetchPage(null);
   };
 
   const startRecord = currentPage * PAGE_LIMIT + 1;
@@ -129,6 +135,34 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {/* Category Filter */}
+        <div className="flex items-center gap-3">
+          <Tag size={16} className="text-violet-400 shrink-0" />
+          <label className="text-slate-400 text-sm font-medium shrink-0">Filter by Category:</label>
+          <select
+            value={category}
+            onChange={handleCategoryChange}
+            className="bg-slate-700/100 border border-slate-700/60 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 hover:border-slate-600 transition-colors duration-150 cursor-pointer"
+          >
+            <option value="">All Categories</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Computers">Computers</option>
+            <option value="Home">Home</option>
+            <option value="Toys">Toys</option>
+            <option value="Automotive">Automotive</option>
+            <option value="Health">Health</option>
+            <option value="Jewelry">Jewelry</option>
+            <option value="Sports">Sports</option>
+            <option value="Shoes">Shoes</option>
+          </select>
+          {category && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              <Tag size={10} />
+              {category}
+            </span>
+          )}
+        </div>
+
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard icon={Package} label="Total Records" value="200,000" color="bg-violet-500/80" />
