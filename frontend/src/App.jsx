@@ -12,7 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const PAGE_LIMIT = 20;
 
 function formatPrice(price) {
